@@ -10,79 +10,75 @@ func readFile() -> String {
   return fileContent
 }
 
-func isInvalidID(id: Int) -> Bool {
-  let digits = String(id).map { Int(String($0))! }
-  if digits.count % 2 != 0 {
-    return false
-  }
-  let firstHalf = digits.prefix(digits.count / 2)
-  let secondHalf = digits.suffix(digits.count / 2)
-  return firstHalf == secondHalf
+func parseRanges(_ fileContent: String) -> [(Int, Int)] {
+  return fileContent.components(separatedBy: ",")
+    .filter { !$0.isEmpty }
+    .map { str -> (Int, Int) in
+      let parts = str.split(separator: "-")
+      return (Int(parts[0])!, Int(parts[1])!)
+    }
 }
 
 func solve() {
   let fileContent = readFile()
-  let ranges = fileContent.components(separatedBy: ",").filter { !$0.isEmpty }
+  let ranges = parseRanges(fileContent)
 
-  var sumofInvalidIDs = 0
+  guard let maxVal = ranges.map({ $0.1 }).max() else { return }
 
-  for range in ranges {
-    let parts = range.split(separator: "-")
-    let start = Int(parts[0])!
-    let end = Int(parts[1])!
+  var sumOfInvalidIDs = 0
+  let maxPrefix = Int(pow(10, Double(String(maxVal).count / 2 + 1)))
 
-    for id in start...end {
-      if isInvalidID(id: id) {
-        sumofInvalidIDs += id
+  for prefix in 1..<maxPrefix {
+    let prefixStr = String(prefix)
+    let len = prefixStr.count
+    let multiplier = Int(pow(10.0, Double(len))) + 1
+    let candidate = prefix * multiplier
+
+    for (start, end) in ranges {
+      if candidate >= start && candidate <= end {
+        sumOfInvalidIDs += candidate
       }
     }
   }
 
-  print("Sum of invalid IDs: \(sumofInvalidIDs)")
-}
-
-func invalidID2(id: Int) -> Bool {
-  let idString = String(id)
-  let n = idString.count
-
-  if n < 2 {
-    return false
-  }
-
-  for patternLength in 1...(n / 2) {
-    if n % patternLength == 0 {
-      let repetitions = n / patternLength
-      if repetitions >= 2 {
-        let pattern = String(idString.prefix(patternLength))
-        let repeated = String(repeating: pattern, count: repetitions)
-        if repeated == idString {
-          return true
-        }
-      }
-    }
-  }
-  return false
+  print("Sum of invalid IDs: \(sumOfInvalidIDs)")
 }
 
 func solve2() {
   let fileContent = readFile()
-  let ranges = fileContent.components(separatedBy: ",").filter { !$0.isEmpty }
+  let ranges = parseRanges(fileContent)
 
-  var sumofInvalidIDs = 0
+  guard let maxVal = ranges.map({ $0.1 }).max() else { return }
 
-  for range in ranges {
-    let parts = range.split(separator: "-")
-    let start = Int(parts[0])!
-    let end = Int(parts[1])!
+  var validInvalidIDs = Set<Int>()
+  let maxDigits = String(maxVal).count
 
-    for id in start...end {
-      if invalidID2(id: id) {
-        sumofInvalidIDs += id
+  for patternLen in 1...(maxDigits / 2) {
+    let startPattern = Int(pow(10.0, Double(patternLen - 1)))
+    let endPattern = Int(pow(10.0, Double(patternLen))) - 1
+
+    for pattern in startPattern...endPattern {
+      let patternStr = String(pattern)
+      var currentStr = patternStr + patternStr
+
+      while true {
+        guard let val = Int(currentStr) else { break }
+        if val > maxVal { break }
+
+        for (start, end) in ranges {
+          if val >= start && val <= end {
+            validInvalidIDs.insert(val)
+            break
+          }
+        }
+
+        currentStr += patternStr
       }
     }
   }
 
-  print("Sum of invalid IDs (pt2): \(sumofInvalidIDs)")
+  let sumOfInvalidIDs = validInvalidIDs.reduce(0, +)
+  print("Sum of invalid IDs (pt2): \(sumOfInvalidIDs)")
 }
 
 solve()
